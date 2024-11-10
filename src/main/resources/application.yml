@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none  # 라이브 DB는 none으로 설정
+    show-sql: false   # 라이브 환경에서는 SQL 로그 비활성화
+    properties:
+      hibernate:
+        format_sql: false
+    database-platform: org.hibernate.dialect.MySQLDialect

@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  S3_BUCKET_NAME: jeff-github-codedeploy    # 위에서 생성한 버킷 이름
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}    # 버킷 이름
   CODE_DEPLOY_APPLICATION_NAME: gracememo-server    # CodeDeploy 애플리케이션 이름
   CODE_DEPLOY_DEPLOYMENT_GROUP_NAME: gracememo-group1 # CodeDeploy 배포 그룹 이름
 
