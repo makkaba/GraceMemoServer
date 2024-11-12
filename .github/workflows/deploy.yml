@@ -45,6 +45,32 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ap-northeast-2
 
+      # 배포 스크립트에 환경변수 설정 추가
+      - name: Make deploy scripts
+        run: |
+          mkdir -p before-deploy
+          echo "#!/bin/bash" > before-deploy/deploy.sh
+          echo "export DB_URL='${{ secrets.DB_URL }}'" >> before-deploy/deploy.sh
+          echo "export DB_USERNAME='${{ secrets.DB_USERNAME }}'" >> before-deploy/deploy.sh
+          echo "export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'" >> before-deploy/deploy.sh
+          echo "cd /home/ec2-user/app" >> before-deploy/deploy.sh
+          echo "echo '> 현재 구동중인 애플리케이션 pid 확인'" >> before-deploy/deploy.sh
+          echo "CURRENT_PID=\$(pgrep -f your-application)" >> before-deploy/deploy.sh
+          echo "if [ -z \"\$CURRENT_PID\" ]; then" >> before-deploy/deploy.sh
+          echo "    echo '> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다.'" >> before-deploy/deploy.sh
+          echo "else" >> before-deploy/deploy.sh
+          echo "    echo '> kill -15 \$CURRENT_PID'" >> before-deploy/deploy.sh
+          echo "    kill -15 \$CURRENT_PID" >> before-deploy/deploy.sh
+          echo "    sleep 5" >> before-deploy/deploy.sh
+          echo "fi" >> before-deploy/deploy.sh
+          echo "echo '> 새 어플리케이션 배포'" >> before-deploy/deploy.sh
+          echo "JAR_NAME=\$(ls -tr *.jar | tail -n 1)" >> before-deploy/deploy.sh
+          echo "echo '> JAR Name: \$JAR_NAME'" >> before-deploy/deploy.sh
+          echo "chmod +x \$JAR_NAME" >> before-deploy/deploy.sh
+          echo "nohup java -jar \$JAR_NAME > nohup.out 2>&1 &" >> before-deploy/deploy.sh
+          chmod +x before-deploy/deploy.sh
+
+
       # 배포 파일 생성
       - name: Make zip file
         run: |
