@@ -47,28 +47,55 @@ jobs:
 
       # 배포 스크립트에 환경변수 설정 추가
       - name: Make deploy scripts
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ACTIONS_STEP_DEBUG: false
         run: |
           mkdir -p before-deploy
-          echo "#!/bin/bash" > before-deploy/deploy.sh
-          echo "export DB_URL='${{ secrets.DB_URL }}'" >> before-deploy/deploy.sh
-          echo "export DB_USERNAME='${{ secrets.DB_USERNAME }}'" >> before-deploy/deploy.sh
-          echo "export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'" >> before-deploy/deploy.sh
-          echo "cd /home/ec2-user/app" >> before-deploy/deploy.sh
-          echo "echo '> 현재 구동중인 애플리케이션 pid 확인'" >> before-deploy/deploy.sh
-          echo "CURRENT_PID=\$(pgrep -f your-application)" >> before-deploy/deploy.sh
-          echo "if [ -z \"\$CURRENT_PID\" ]; then" >> before-deploy/deploy.sh
-          echo "    echo '> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다.'" >> before-deploy/deploy.sh
-          echo "else" >> before-deploy/deploy.sh
-          echo "    echo '> kill -15 \$CURRENT_PID'" >> before-deploy/deploy.sh
-          echo "    kill -15 \$CURRENT_PID" >> before-deploy/deploy.sh
-          echo "    sleep 5" >> before-deploy/deploy.sh
-          echo "fi" >> before-deploy/deploy.sh
-          echo "echo '> 새 어플리케이션 배포'" >> before-deploy/deploy.sh
-          echo "JAR_NAME=\$(ls -tr *.jar | tail -n 1)" >> before-deploy/deploy.sh
-          echo "echo '> JAR Name: \$JAR_NAME'" >> before-deploy/deploy.sh
-          echo "chmod +x \$JAR_NAME" >> before-deploy/deploy.sh
-          echo "nohup java -jar \$JAR_NAME > nohup.out 2>&1 &" >> before-deploy/deploy.sh
+          cat << 'EOF' > before-deploy/deploy.sh
+          #!/bin/bash
+
+          # Load environment variables from secure file
+          if [ -f "/home/ec2-user/app/.env" ]; then
+            source /home/ec2-user/app/.env
+          fi
+
+          cd /home/ec2-user/app
+
+          echo "> 현재 구동중인 애플리케이션 pid 확인"
+          CURRENT_PID=$(pgrep -f $(basename *.jar))
+
+          if [ -z "$CURRENT_PID" ]; then
+            echo "> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다."
+          else
+            echo "> kill -15 $CURRENT_PID"
+            kill -15 $CURRENT_PID
+            sleep 5
+          fi
+
+          echo "> 새 어플리케이션 배포"
+          JAR_NAME=$(ls -tr *.jar | tail -n 1)
+
+          echo "> JAR Name: $JAR_NAME"
+          chmod +x $JAR_NAME
+
+          nohup java -jar \
+            -Dspring.datasource.url=${DB_URL} \
+            -Dspring.datasource.username=${DB_USERNAME} \
+            -Dspring.datasource.password=${DB_PASSWORD} \
+            $JAR_NAME > nohup.out 2>&1 &
+          EOF
+
           chmod +x before-deploy/deploy.sh
+
+          # Create secure env file
+          cat << EOF > before-deploy/.env
+          DB_URL="${DB_URL}"
+          DB_USERNAME="${DB_USERNAME}"
+          DB_PASSWORD="${DB_PASSWORD}"
+          EOF
 
 
       # 배포 파일 생성
