@@ -16,6 +16,10 @@ permissions:
     group: ec2-user
     mode: 775
 hooks:
+  BeforeInstall:
+    - location: chown.sh
+      timeout: 60
+      runas: root
   ApplicationStart:
     - location: deploy.sh
       timeout: 60
